@@ -1,4 +1,3 @@
 # rust-image2pdf #
 
-image files convert to a pdf file.
-
+This is a command to convert multiple image files to PDF files.
