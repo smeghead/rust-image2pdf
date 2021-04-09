@@ -3,7 +3,9 @@ extern crate printpdf;
 use getopts::Options;
 use printpdf::*;
 use image::jpeg::JpegDecoder;
+use image::png::PngDecoder;
 use std::fs::File;
+use std::path::Path;
 use std::io::BufWriter;
 
 pub struct Config {
@@ -46,7 +48,7 @@ pub fn run(config: Config) -> Result<(), Box<Error>> {
 
     let doc = PdfDocument::empty("printpdf graphics test");
 
-    let dpi = 1.0;
+    let dpi = 72.0;
 
     for image_path in config.image_paths.iter() {
         println!("image_path: {}", image_path);
@@ -86,8 +88,13 @@ pub struct ImageParameter {
 impl ImageParameter {
     pub fn new(filename: String, dpi: f64) -> Result<ImageParameter, &'static str> {
         let mut image_file: File = File::open(filename.clone()).unwrap();
-        let decoder = JpegDecoder::new(&mut image_file).unwrap();
-        let image = Image::try_from(decoder).unwrap();
+        let ext = Path::new(&filename).extension().unwrap().to_str().unwrap();
+        let image = match &ext[..] {
+            "jpg" => Image::try_from(JpegDecoder::new(&mut image_file).unwrap()).unwrap(),
+            "jpeg" => Image::try_from(JpegDecoder::new(&mut image_file).unwrap()).unwrap(),
+            "png" => Image::try_from(PngDecoder::new(&mut image_file).unwrap()).unwrap(),
+            _ => return Err("failed to convert. "),
+        };
         let width = Mm::from(image.image.width.into_pt(dpi)).0;
         let height = Mm::from(image.image.height.into_pt(dpi)).0;
         let scale_calculator = ScaleCalculator {width, height};
