@@ -46,7 +46,7 @@ pub fn run(config: Config) -> Result<(), Box<Error>> {
 
     let doc = PdfDocument::empty("printpdf graphics test");
 
-    let dpi = 300.0;
+    let dpi = 1.0;
 
     for image_path in config.image_paths.iter() {
         println!("image_path: {}", image_path);
@@ -54,17 +54,21 @@ pub fn run(config: Config) -> Result<(), Box<Error>> {
 
         let (page_index, layer_index) = doc.add_page(Mm(param.page_width), Mm(param.page_height), "Page 2, Layer 1");
         let current_layer = doc.get_page(page_index).get_layer(layer_index);
-        let position = Mm::from(param.image.image.width.into_pt(dpi));
         param.image.add_to_layer(
             current_layer.clone(),
             None,
-            Some(position),
+            Some(Mm(param.position)),
             None,
             Some(param.scale),
             Some(param.scale),
             Some(dpi));
     }
 
+    let doc = doc.with_conformance(PdfConformance::Custom(CustomPdfConformance {
+        requires_icc_profile: false,
+        requires_xmp_metadata: false,
+        .. Default::default()
+    }));
     doc.save(&mut BufWriter::new(File::create(config.output_filename).unwrap())).unwrap();
 
     return Ok(());
@@ -74,6 +78,7 @@ pub fn run(config: Config) -> Result<(), Box<Error>> {
 pub struct ImageParameter {
     pub image: Image,
     pub scale: f64,
+    pub position: f64,
     pub page_width: f64,
     pub page_height: f64,
     pub dpi: f64,
@@ -97,7 +102,8 @@ impl ImageParameter {
             Orientation::Landscape {width: _, height} => height,
             Orientation::Portrait {width: _, height} => height,
         };
-        Ok(ImageParameter {image, scale, page_width, page_height, dpi})
+        let position = page_height - (height * scale);
+        Ok(ImageParameter {image, scale, position, page_width, page_height, dpi})
     }
 }
 
