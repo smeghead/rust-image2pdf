@@ -46,7 +46,7 @@ fn print_usage(program: &str, opts: Options) {
 
 pub fn run(config: Config) -> Result<(), Box<Error>> {
 
-    let doc = PdfDocument::empty("printpdf graphics test");
+    let doc = PdfDocument::empty("pdfpackman");
 
     let dpi = 72.0;
 
@@ -54,12 +54,12 @@ pub fn run(config: Config) -> Result<(), Box<Error>> {
         println!("image_path: {}", image_path);
         let param = ImageParameter::new(image_path.to_string(), dpi).unwrap();
 
-        let (page_index, layer_index) = doc.add_page(Mm(param.page_width), Mm(param.page_height), "Page 2, Layer 1");
+        let (page_index, layer_index) = doc.add_page(Mm(param.page_width), Mm(param.page_height), "image");
         let current_layer = doc.get_page(page_index).get_layer(layer_index);
         param.image.add_to_layer(
             current_layer.clone(),
-            None,
-            Some(Mm(param.position)),
+            Some(Mm(param.position.x)),
+            Some(Mm(param.position.y)),
             None,
             Some(param.scale),
             Some(param.scale),
@@ -76,15 +76,22 @@ pub fn run(config: Config) -> Result<(), Box<Error>> {
     return Ok(());
 }
 
+#[derive(Debug, PartialEq)]
+pub struct Position {
+    x: f64,
+    y: f64,
+}
+
 #[derive(Debug)]
 pub struct ImageParameter {
     pub image: Image,
     pub scale: f64,
-    pub position: f64,
+    pub position: Position,
     pub page_width: f64,
     pub page_height: f64,
     pub dpi: f64,
 }
+
 impl ImageParameter {
     pub fn new(filename: String, dpi: f64) -> Result<ImageParameter, &'static str> {
         let mut image_file: File = File::open(filename.clone()).unwrap();
@@ -100,6 +107,8 @@ impl ImageParameter {
         let scale_calculator = ScaleCalculator {width, height};
         let orientation = scale_calculator.get_orientation();
         let scale = scale_calculator.get_scale(&orientation);
+        let position = scale_calculator.get_position(&orientation, scale);
+        println!("position: {:?}", position);
 
         let page_width = match orientation {
             Orientation::Landscape {width, height: _} => width,
@@ -109,13 +118,11 @@ impl ImageParameter {
             Orientation::Landscape {width: _, height} => height,
             Orientation::Portrait {width: _, height} => height,
         };
-        let position = page_height - (height * scale);
         Ok(ImageParameter {image, scale, position, page_width, page_height, dpi})
     }
 }
 
-#[derive(PartialEq)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Orientation {
     Landscape {width: f64, height: f64},
     Portrait {width: f64, height: f64},
@@ -148,6 +155,18 @@ impl ScaleCalculator {
             return w;
         }
         return h;
+    }
+
+    fn get_position(&self, orientation: &Orientation, scale: f64) -> Position {
+        let x = match orientation {
+            Orientation::Landscape {width, height: _} => (width - (self.width * scale)) / 2.0,
+            Orientation::Portrait {width, height: _} => (width - (self.width * scale)) / 2.0,
+        };
+        let y = match orientation {
+            Orientation::Landscape {width: _, height} => (height - (self.height * scale)) / 2.0,
+            Orientation::Portrait {width: _, height} => (height - (self.height * scale)) / 2.0,
+        };
+        return Position {x, y};
     }
 }
 
@@ -188,5 +207,15 @@ mod tests {
         let o = Orientation::Landscape {width: 297.0, height: 210.0};
         let expected = 210.0 / 100.0;
         assert_eq!(c.get_scale(&o), expected);
+    }
+
+    #[test]
+    fn scale_calculator_position() {
+        let width = 50.0;
+        let height = 50.0;
+        let c: ScaleCalculator = ScaleCalculator {width, height};
+        let o = Orientation::Landscape {width: 200.0, height: 100.0};
+        let expected = Position {x: 50.0, y: 0.0};
+        assert_eq!(c.get_position(&o, 2.0), expected);
     }
 }
