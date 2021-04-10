@@ -1,10 +1,10 @@
 extern crate getopts;
-extern crate rust_image2pdf;
+extern crate pdfpackman;
 
 use std::env;
 use std::process;
 
-use rust_image2pdf::Config;
+use pdfpackman::Config;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -13,8 +13,7 @@ fn main() {
         process::exit(1);
     });
 
-
-    if let Err(e) = rust_image2pdf::run(config) {
+    if let Err(e) = pdfpackman::run(config) {
         eprintln!("Problem execute: {}", e);
         process::exit(1);
     }

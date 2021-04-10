@@ -1,5 +1,5 @@
 [package]
-name = "rust_image2pdf"
+name = "pdfpackman"
 version = "0.1.0"
 authors = ["smeghead"]
 edition = "2018"
