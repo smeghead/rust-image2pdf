@@ -40,7 +40,7 @@ impl Config {
 }
 
 fn print_usage(program: &str, opts: Options) {
-    let brief = format!("Usage: {} FILE [options]", program);
+    let brief = format!("Usage: {} [options] FILE [FILE..]", program);
     eprint!("{}", opts.usage(&brief));
 }
 
