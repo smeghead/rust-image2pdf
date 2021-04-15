@@ -27,7 +27,7 @@ impl Config {
         };
         if matches.opt_present("h") {
             print_usage(&program, opts);
-            return Err("help!");
+            return Err("");
         }
         let output_filename = match matches.opt_str("o") {
             Some(s) => s,
@@ -51,7 +51,7 @@ pub fn run(config: Config) -> Result<(), Box<Error>> {
     let dpi = 72.0;
 
     for image_path in config.image_paths.iter() {
-        println!("image_path: {}", image_path);
+        println!("reading image: {}", image_path);
         let param = ImageParameter::new(image_path.to_string(), dpi).unwrap();
 
         let (page_index, layer_index) = doc.add_page(Mm(param.page_width), Mm(param.page_height), "image");
@@ -71,7 +71,8 @@ pub fn run(config: Config) -> Result<(), Box<Error>> {
         requires_xmp_metadata: false,
         .. Default::default()
     }));
-    doc.save(&mut BufWriter::new(File::create(config.output_filename).unwrap())).unwrap();
+    doc.save(&mut BufWriter::new(File::create(&config.output_filename).unwrap())).unwrap();
+    println!("saved {}", &config.output_filename);
 
     return Ok(());
 }
@@ -108,7 +109,6 @@ impl ImageParameter {
         let orientation = scale_calculator.get_orientation();
         let scale = scale_calculator.get_scale(&orientation);
         let position = scale_calculator.get_position(&orientation, scale);
-        println!("position: {:?}", position);
 
         let page_width = match orientation {
             Orientation::Landscape {width, height: _} => width,
@@ -176,34 +176,26 @@ mod tests {
 
     #[test]
     fn scale_calculator_init() {
-        let width = 1.0;
-        let height = 2.0;
-        let c: ScaleCalculator = ScaleCalculator {width, height};
+        let c: ScaleCalculator = ScaleCalculator {width: 1.0, height: 2.0};
         assert_eq!(c.width, 1.0);
         assert_eq!(c.height, 2.0);
     }
 
     #[test]
     fn scale_calculator_orientation_landscape() {
-        let width = 100.0;
-        let height = 50.0;
-        let c: ScaleCalculator = ScaleCalculator {width, height};
+        let c: ScaleCalculator = ScaleCalculator {width: 100.0, height: 50.0};
         assert_eq!(c.get_orientation(), Orientation::Landscape {width: 297.0, height: 210.0});
     }
 
     #[test]
     fn scale_calculator_orientation_portrait() {
-        let width = 100.0;
-        let height = 150.0;
-        let c: ScaleCalculator = ScaleCalculator {width, height};
+        let c: ScaleCalculator = ScaleCalculator {width: 100.0, height: 150.0};
         assert_eq!(c.get_orientation(), Orientation::Portrait {width: 210.0, height: 297.0});
     }
 
     #[test]
     fn scale_calculator_orientation_landscape_scale() {
-        let width = 100.0;
-        let height = 100.0;
-        let c: ScaleCalculator = ScaleCalculator {width, height};
+        let c: ScaleCalculator = ScaleCalculator {width: 100.0, height: 100.0};
         let o = Orientation::Landscape {width: 297.0, height: 210.0};
         let expected = 210.0 / 100.0;
         assert_eq!(c.get_scale(&o), expected);
@@ -211,9 +203,7 @@ mod tests {
 
     #[test]
     fn scale_calculator_position() {
-        let width = 50.0;
-        let height = 50.0;
-        let c: ScaleCalculator = ScaleCalculator {width, height};
+        let c: ScaleCalculator = ScaleCalculator {width: 50.0, height: 50.0};
         let o = Orientation::Landscape {width: 200.0, height: 100.0};
         let expected = Position {x: 50.0, y: 0.0};
         assert_eq!(c.get_position(&o, 2.0), expected);
