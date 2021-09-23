@@ -1,9 +1,10 @@
 extern crate printpdf;
+extern crate image;
 
 use getopts::Options;
 use printpdf::*;
 use image::jpeg::JpegDecoder;
-use image::png::PngDecoder;
+use image::DynamicImage;
 use std::fs::File;
 use std::path::Path;
 use std::io::BufWriter;
@@ -100,7 +101,10 @@ impl ImageParameter {
         let image = match &ext[..] {
             "jpg" => Image::try_from(JpegDecoder::new(&mut image_file).unwrap()).unwrap(),
             "jpeg" => Image::try_from(JpegDecoder::new(&mut image_file).unwrap()).unwrap(),
-            "png" => Image::try_from(PngDecoder::new(&mut image_file).unwrap()).unwrap(),
+            "png" => {
+                let image = image::open(&filename).unwrap().to_rgb8();
+                Image::from_dynamic_image(&DynamicImage::ImageRgb8(image))
+            },
             _ => return Err("failed to convert. "),
         };
         let width = Mm::from(image.image.width.into_pt(dpi)).0;
@@ -220,4 +224,11 @@ mod tests {
         let param = ImageParameter::new("sample/sample-jpg-ext.JPG".to_string(), 72.0).unwrap();
         assert_eq!(param.dpi, 72.0);
     }
+
+    #[test]
+    fn image_parameter_init_png() {
+        let param = ImageParameter::new("sample/sample-png.png".to_string(), 72.0).unwrap();
+        assert_eq!(param.dpi, 72.0);
+    }
+
 }

@@ -27,7 +27,3 @@ Options:
 pdfpackman -o output.pdf sample.jpg sample.png
 ```
 
-## Known issues ##
-
-- a png file has a alpha channel is not apear in the output pdf file.
-
