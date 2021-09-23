@@ -96,7 +96,7 @@ pub struct ImageParameter {
 impl ImageParameter {
     pub fn new(filename: String, dpi: f64) -> Result<ImageParameter, &'static str> {
         let mut image_file: File = File::open(filename.clone()).unwrap();
-        let ext = Path::new(&filename).extension().unwrap().to_str().unwrap();
+        let ext = Path::new(&filename).extension().unwrap().to_str().unwrap().to_lowercase();
         let image = match &ext[..] {
             "jpg" => Image::try_from(JpegDecoder::new(&mut image_file).unwrap()).unwrap(),
             "jpeg" => Image::try_from(JpegDecoder::new(&mut image_file).unwrap()).unwrap(),
@@ -207,5 +207,17 @@ mod tests {
         let o = Orientation::Landscape {width: 200.0, height: 100.0};
         let expected = Position {x: 50.0, y: 0.0};
         assert_eq!(c.get_position(&o, 2.0), expected);
+    }
+
+    #[test]
+    fn image_parameter_init_jpg() {
+        let param = ImageParameter::new("sample/sample-jpg.jpg".to_string(), 72.0).unwrap();
+        assert_eq!(param.dpi, 72.0);
+    }
+
+    #[test]
+    fn image_parameter_init_jpg_ext_uppercase() {
+        let param = ImageParameter::new("sample/sample-jpg-ext.JPG".to_string(), 72.0).unwrap();
+        assert_eq!(param.dpi, 72.0);
     }
 }
